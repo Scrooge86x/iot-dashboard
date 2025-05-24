@@ -16,7 +16,7 @@ class IndexController implements Controller {
 
     private serveIndex = async (request: Request, response: Response) => {
         response.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-    }
+    };
 }
 
 export default IndexController;
