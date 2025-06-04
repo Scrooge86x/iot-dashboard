@@ -1,5 +1,6 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
 import { config } from '../config';
+import { StatusCodes } from 'http-status-codes';
 
 export const checkIdParam: RequestHandler = (
     request: Request,
@@ -10,7 +11,7 @@ export const checkIdParam: RequestHandler = (
     const parsedValue = parseInt(id, 10);
     if (isNaN(parsedValue) || parsedValue >= config.supportedDevicesNum) {
         return response
-            .status(400)
+            .status(StatusCodes.BAD_REQUEST)
             .send('Brak lub niepoprawny parametr ID urządzenia!');
     }
     next();

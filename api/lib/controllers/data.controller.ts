@@ -5,6 +5,7 @@ import { checkIdParam } from '../middlewares/deviceIdParam.middleware';
 import DataService from '../modules/services/data.service';
 import { IData } from 'modules/models/data.model';
 import { config } from '../config';
+import Joi from 'joi';
 
 class DataController implements Controller {
     public path = '/api/data';
@@ -125,19 +126,38 @@ class DataController implements Controller {
 
     private addData = async (request: Request, response: Response) => {
         const { id } = request.params;
-        try {
-            const { air } = request.body;
+        const { air } = request.body;
 
-            const data: IData = {
-                temperature: air[0].value,
-                pressure: air[1].value,
-                humidity: air[2].value,
-                deviceId: parseInt(id),
-                readingDate: new Date(),
+        const schema = Joi.object({
+            air: Joi.array()
+                .items(
+                    Joi.object({
+                        id: Joi.number().integer().positive().required(),
+                        value: Joi.number().positive().required(),
+                    })
+                )
+                .unique((a, b) => a.id === b.id),
+            deviceId: Joi.number()
+                .integer()
+                .positive()
+                .valid(parseInt(id, 10))
+                .required(),
+        });
+
+        try {
+            const validatedData = await schema.validateAsync({
+                air,
+                deviceId: parseInt(id, 10),
+            });
+            const readingData: IData = {
+                temperature: validatedData.air[0].value,
+                pressure: validatedData.air[1].value,
+                humidity: validatedData.air[2].value,
+                deviceId: validatedData.deviceId,
             };
 
-            await this.dataService.createData(data);
-            response.status(StatusCodes.OK).json(data);
+            await this.dataService.createData(readingData);
+            response.status(StatusCodes.OK).json(readingData);
         } catch (error) {
             console.error(`Validation Error: ${error.message}`);
             response
