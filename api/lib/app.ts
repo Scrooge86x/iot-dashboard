@@ -1,18 +1,23 @@
 import express from 'express';
+import cors from 'cors';
 import { config } from './config';
-import Controller from './interfaces/controller.interface';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import { logRequest } from './middlewares/logRequest.middleware';
+import { Server } from 'socket.io';
 
 class App {
     public app: express.Application;
+    private io: Server;
 
-    constructor(controllers: Controller[]) {
+    constructor() {
         this.app = express();
         this.initializeMiddlewares();
-        this.initializeControllers(controllers);
         this.connectToDatabase();
+    }
+
+    public getIo(): Server {
+        return this.io;
     }
 
     public listen(): void {
@@ -24,12 +29,12 @@ class App {
     private initializeMiddlewares(): void {
         this.app.use(bodyParser.json());
         this.app.use(logRequest);
-    }
-
-    private initializeControllers(controllers: Controller[]): void {
-        controllers.forEach((controller) => {
-            this.app.use('/', controller.router);
-        });
+        this.app.use(
+            cors({
+                origin: 'http://localhost:5173',
+                methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+            })
+        );
     }
 
     private async connectToDatabase(): Promise<void> {

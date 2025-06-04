@@ -1,12 +1,13 @@
 import Controller from '../interfaces/controller.interface';
 import { Request, Response, NextFunction, Router } from 'express';
 import path from 'path';
+import { Server } from 'socket.io';
 
 class IndexController implements Controller {
     public path = '/*';
     public router = Router();
 
-    constructor() {
+    constructor(private io: Server) {
         this.initializeRoutes();
     }
 
