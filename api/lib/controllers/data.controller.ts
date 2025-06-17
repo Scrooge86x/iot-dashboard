@@ -1,7 +1,8 @@
 import Controller from '../interfaces/controller.interface';
-import { Request, Response, NextFunction, Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { checkIdParam } from '../middlewares/deviceIdParam.middleware';
+import { checkIdParam } from '../middlewares/checkIdParam.middleware';
+import { auth } from '../middlewares/auth.middleware';
 import DataService from '../modules/services/data.service';
 import { IData } from 'modules/models/data.model';
 import { config } from '../config';
@@ -18,30 +19,40 @@ class DataController implements Controller {
     private initializeRoutes() {
         this.router.get(
             `${this.path}/latest`,
+            auth,
             this.getLatestReadingsFromAllDevices
         );
         this.router.get(
+            `${this.path}/lasthour`,
+            auth,
+            this.getAllReadingsFromLastHour
+        );
+        this.router.get(
             `${this.path}/:id/latest`,
+            auth,
             checkIdParam,
             this.getLatestReading
         );
         this.router.get(
             `${this.path}/:id/:num`,
+            auth,
             checkIdParam,
             this.getPeriodData
         );
         this.router.get(
             `${this.path}/:id`,
+            auth,
             checkIdParam,
             this.getAllDeviceData
         );
-        this.router.delete(`${this.path}/all`, this.cleanAllDevices);
+        this.router.delete(`${this.path}/all`, auth, this.cleanAllDevices);
         this.router.delete(
             `${this.path}/:id`,
+            auth,
             checkIdParam,
             this.cleanDeviceData
         );
-        this.router.post(`${this.path}/:id`, checkIdParam, this.addData);
+        this.router.post(`${this.path}/:id`, auth, checkIdParam, this.addData);
     }
 
     private getAllDeviceData = async (request: Request, response: Response) => {
@@ -49,6 +60,19 @@ class DataController implements Controller {
         try {
             const allData = await this.dataService.query(id);
             response.status(StatusCodes.OK).json(allData);
+        } catch (error) {
+            console.error(error.message);
+            response.sendStatus(StatusCodes.INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    private getAllReadingsFromLastHour = async (
+        request: Request,
+        response: Response
+    ) => {
+        try {
+            const lastHourData = await this.dataService.getAllFromLastHour();
+            response.status(StatusCodes.OK).json(lastHourData);
         } catch (error) {
             console.error(error.message);
             response.sendStatus(StatusCodes.INTERNAL_SERVER_ERROR);
@@ -90,7 +114,21 @@ class DataController implements Controller {
     private cleanDeviceData = async (request: Request, response: Response) => {
         try {
             const { id } = request.params;
-            await this.dataService.deleteData(id);
+            const { from, to } = request.body;
+            if (!from || !to) {
+                await this.dataService.deleteData(id);
+                return response.sendStatus(StatusCodes.NO_CONTENT);
+            }
+
+            const fromDate = new Date(from);
+            const toDate = new Date(to);
+            if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+                return response
+                    .status(StatusCodes.BAD_REQUEST)
+                    .send('Error: invalid date range specified.');
+            }
+
+            await this.dataService.deleteDataInRange(id, fromDate, toDate);
             response.sendStatus(StatusCodes.NO_CONTENT);
         } catch (error) {
             console.error(error.message);

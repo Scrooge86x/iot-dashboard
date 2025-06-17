@@ -1,7 +1,6 @@
 import Controller from '../interfaces/controller.interface';
 import { Request, Response, NextFunction, Router } from 'express';
 import { auth } from '../middlewares/auth.middleware';
-import { admin } from '../middlewares/admin.middleware';
 import UserService from '../modules/services/user.service';
 import PasswordService from '../modules/services/password.service';
 import TokenService from '../modules/services/token.service';
@@ -43,7 +42,7 @@ class UserController implements Controller {
             if (!user) {
                 return response
                     .status(StatusCodes.UNAUTHORIZED)
-                    .json({ error: 'Unauthorized' });
+                    .json({ error: 'Unauthorized: user not found' });
             }
 
             const isAuthorized = await this.passwordService.authorize(
@@ -53,7 +52,7 @@ class UserController implements Controller {
             if (!isAuthorized) {
                 return response
                     .status(StatusCodes.UNAUTHORIZED)
-                    .json({ error: 'Unauthorized' });
+                    .json({ error: 'Unauthorized: password not matching' });
             }
 
             const token = await this.tokenService.create(user);

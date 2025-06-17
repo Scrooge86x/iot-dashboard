@@ -3,44 +3,15 @@ import { LineChart } from '@mui/x-charts/LineChart';
 
 import type IData from '../types/IData';
 
-interface Props {
-    deviceId: { id: number };
-    setHasInvalidDate: (value: boolean) => void;
-}
-
-export default function Charts({ deviceId, setHasInvalidDate }: Props) {
+export default function LatestReadingsChart() {
     const [loading, setLoading] = useState(true);
     const [readings, setReadings] = useState<IData[]>([]);
-
-    const hasSignificantDeviation = (data: IData[]): boolean => {
-        for (let i = 1; i < data.length; i++) {
-            const prev = data[i - 1];
-            const curr = data[i];
-
-            const temperatureDeviation =
-                Math.abs(curr.temperature - prev.temperature) /
-                prev.temperature;
-            const pressureDeviation =
-                Math.abs(curr.pressure - prev.pressure) / prev.pressure;
-            const humidityDeviation =
-                Math.abs(curr.humidity - prev.humidity) / prev.humidity;
-
-            if (
-                temperatureDeviation >= 0.2 ||
-                pressureDeviation >= 0.2 ||
-                humidityDeviation >= 0.2
-            ) {
-                return true;
-            }
-        }
-        return false;
-    };
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             const response = await fetch(
-                `http://localhost:3100/api/data/${deviceId.id}`,
+                'http://localhost:3100/api/data/lasthour',
                 {
                     method: 'GET',
                     headers: {
@@ -68,11 +39,10 @@ export default function Charts({ deviceId, setHasInvalidDate }: Props) {
                         new Date(b.readingDate).getTime()
                 )
             );
-            setHasInvalidDate(hasSignificantDeviation(filteredData));
             setLoading(false);
         };
         fetchData();
-    }, [deviceId]);
+    }, []);
 
     if (loading) {
         return (
@@ -108,10 +78,16 @@ export default function Charts({ deviceId, setHasInvalidDate }: Props) {
             ]}
             xAxis={[
                 {
-                    scaleType: 'time',
-                    data: readings.map(
-                        (reading: IData) => new Date(reading.readingDate ?? 0)
-                    ),
+                    scaleType: 'band',
+                    data: readings.map((reading: IData) => {
+                        const date = new Date(reading.readingDate ?? 0);
+                        const timeStr = date.toLocaleTimeString('pl-PL', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                        });
+                        return `${timeStr} (device: ${reading.deviceId})`;
+                    }),
                     tickLabelStyle: { fill: '#fff' },
                 },
             ]}

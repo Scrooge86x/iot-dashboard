@@ -8,17 +8,22 @@ import OpacityIcon from '@mui/icons-material/Opacity';
 interface Props {
     data: DeviceReading;
     isActive?: boolean;
+    hasInvalidDate?: boolean;
     onClick?: () => void;
 }
 
-function DeviceCard({ data, isActive, onClick }: Props) {
+function DeviceCard({ data, isActive, hasInvalidDate, onClick }: Props) {
     return (
         <Typography
             style={{
                 padding: '10px',
                 width: '13rem',
                 textAlign: 'left',
-                backgroundColor: isActive ? '#0eb4b3' : '#1e1e1e',
+                backgroundColor: hasInvalidDate
+                    ? '#500'
+                    : isActive
+                    ? '#0eb4b3'
+                    : '#1e1e1e',
                 maxHeight: '150px',
                 minWidth: '210px',
             }}

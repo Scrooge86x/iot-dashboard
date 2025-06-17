@@ -43,7 +43,6 @@ export default class DataService {
                         )
                             .limit(1)
                             .sort({ $natural: -1 });
-                        // console.log(latestEntry)
                         if (latestEntry.length) {
                             latestData.push(latestEntry[0]);
                         } else {
@@ -66,11 +65,39 @@ export default class DataService {
         }
     }
 
+    public async getAllFromLastHour() {
+        try {
+            const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60);
+            const allRecentRecords = await DataModel.find(
+                {
+                    deviceId: { $gte: 0, $lte: 16 },
+                    readingDate: { $gte: oneHourAgo },
+                },
+                { __v: 0, _id: 0 }
+            ).sort({ readingDate: -1 });
+
+            return allRecentRecords;
+        } catch (error) {
+            throw new Error(`Query failed: ${error}`);
+        }
+    }
+
     public async deleteData(deviceId: string) {
         try {
             await DataModel.deleteMany({ deviceId });
         } catch (error) {
             throw new Error(`Query failed: ${error}`);
+        }
+    }
+
+    public async deleteDataInRange(deviceId: string, from: Date, to: Date) {
+        try {
+            await DataModel.deleteMany({
+                deviceId,
+                readingDate: { $gte: from, $lte: to },
+            });
+        } catch (error) {
+            throw new Error(`Delete in range failed: ${error}`);
         }
     }
 }
